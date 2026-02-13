@@ -77,6 +77,4 @@ GEMINI_MODEL=gemini-1.5-flash-latest
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📄 License
 
-This project is open-source and available under the standard MIT License.
