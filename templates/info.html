@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+
+<div class="core-5g-container">
+    <h2 class="diagram-title">CORE 5G OVERVIEW</h2>
+
+    <!-- Top Row: Control Plane Nodes on the Bus -->
+    <div class="sba-bus-row">
+        <div class="node-group">
+            <div class="node" data-id="nssf">NSSF</div>
+            <div class="node" data-id="smsf">SMSF</div>
+            <div class="node" data-id="nrf">NRF</div>
+            <div class="node" data-id="udm">UDM</div>
+            <div class="node" data-id="ausf">AUSF</div>
+            <div class="node" data-id="pcf">PCF</div>
+        </div>
+        <div class="bus-line"></div>
+    </div>
+
+    <!-- Middle Row: AMF and SMF connecting to the bus -->
+    <div class="control-connect-row">
+        <div class="node" data-id="amf">AMF</div>
+        <div class="node" data-id="smf">SMF</div>
+    </div>
+
+    <!-- Bottom Section: User Plane and Access -->
+    <div class="user-plane-row">
+        <div class="access-side">
+            <div class="node icon-node" data-id="ue">
+                <span class="icon">📱</span>
+                <span class="label">UE</span>
+            </div>
+            <div class="node icon-node" data-id="gnb">
+                <span class="icon">🗼</span>
+                <span class="label">GnB</span>
+            </div>
+        </div>
+
+        <div class="upf-side">
+            <div class="node" data-id="upf">UPF</div>
+        </div>
+
+        <div class="dn-side">
+            <div class="node icon-node" data-id="dn">
+                <span class="icon">🌐</span>
+                <span class="label">Data Network</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connections (visualized with CSS lines, here just structure) -->
+    <!-- Note: Complex lines will be handled via CSS ::before/::after or SVG overlays if needed. 
+         For this implementation, we will use simplified CSS layout. -->
+
+</div>
+
+<!-- Details Panel / Modal -->
+<div id="node-details-modal" class="modal hidden">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3 id="modal-title">Component Name</h3>
+        <p class="modal-subtitle" id="modal-fullname"></p>
+        <hr>
+        <div class="modal-body">
+            <h4>Description</h4>
+            <p id="modal-desc">...</p>
+            <h4>Role in 5G Core</h4>
+            <p id="modal-role">...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const nodeData = {
+        "nssf": {
+            title: "NSSF",
+            fullname: "Network Slice Selection Function",
+            desc: "Selects the set of Network Slice instances to serve the UE.",
+            role: "Determines the allowed Network Slice Selection Assistance Information (NSSAI) and selects the AMF set to be used for the UE."
+        },
+        "smsf": {
+            title: "SMSF",
+            fullname: "Short Message Service Function",
+            desc: "Supports SMS transfer over NAS (Non-Access Stratum).",
+            role: "Handles SMS management subscriptions and interacts with the SMS-GMSC/IWMSC."
+        },
+        "nrf": {
+            title: "NRF",
+            fullname: "Network Repository Function",
+            desc: "A centralized repository for all network functions.",
+            role: "Allows network functions to discover each other's services and status. It's the 'phone book' of the 5G core."
+        },
+        "udm": {
+            title: "UDM",
+            fullname: "Unified Data Management",
+            desc: "Manages user data, similar to the HSS in 4G.",
+            role: "Handles subscription data management, user identification, and access authorization."
+        },
+        "ausf": {
+            title: "AUSF",
+            fullname: "Authentication Server Function",
+            desc: "Performs authentication of the UE.",
+            role: "Acts as an authentication server, supporting various authentication methods and interacting with the UDM."
+        },
+        "pcf": {
+            title: "PCF",
+            fullname: "Policy Control Function",
+            desc: "Governs network behavior through policy rules.",
+            role: "Provides policy rules for control plane functions (like AMF, SMF) to enforce QoS, charging, and mobility management."
+        },
+        "amf": {
+            title: "AMF",
+            fullname: "Access and Mobility Management Function",
+            desc: "Manages connection and mobility tasks.",
+            role: "Handles registration, connection, reachability, and mobility management. It's the entry point for the UE into the core network (Control Plane)."
+        },
+        "smf": {
+            title: "SMF",
+            fullname: "Session Management Function",
+            desc: "Manages PDU (Protocol Data Unit) sessions.",
+            role: "Allocates IP addresses, manages session establishment, modification, and release, and controls the UPF."
+        },
+        "upf": {
+            title: "UPF",
+            fullname: "User Plane Function",
+            desc: "Process and forwards user data traffic.",
+            role: "Acts as the anchor for mobility, packet routing/forwarding, and packet inspection. It connects the 5G core to the external Data Network."
+        },
+        "ue": {
+            title: "UE",
+            fullname: "User Equipment",
+            desc: "The end-user device (e.g., smartphone, IoT device).",
+            role: "Connects to the 5G network via the RAN (gNB) to access data and voice services."
+        },
+        "gnb": {
+            title: "GnB",
+            fullname: "Next Generation NodeB",
+            desc: "The 5G base station.",
+            role: "Handles radio communication with the UE and interfaces with the 5G Core (AMF/UPF)."
+        },
+        "dn": {
+            title: "Data Network",
+            fullname: "Data Network",
+            desc: "External networks like the Internet, corporate networks, or IMS.",
+            role: "The destination or source of the user's data traffic."
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('node-details-modal');
+        const closeBtn = document.querySelector('.close-btn');
+        const nodes = document.querySelectorAll('.node');
+
+        const titleEl = document.getElementById('modal-title');
+        const fullnameEl = document.getElementById('modal-fullname');
+        const descEl = document.getElementById('modal-desc');
+        const roleEl = document.getElementById('modal-role');
+
+        nodes.forEach(node => {
+            node.addEventListener('click', () => {
+                const id = node.getAttribute('data-id');
+                const data = nodeData[id];
+
+                if (data) {
+                    titleEl.textContent = data.title;
+                    fullnameEl.textContent = data.fullname;
+                    descEl.textContent = data.desc;
+                    roleEl.textContent = data.role;
+
+                    modal.classList.remove('hidden');
+                    modal.style.display = 'flex';
+                }
+            });
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-history" id="chatHistory">
+        <div class="message ai">
+            Hello! I am your AI Security Assistant. Ask me anything about cyber security. 🛡️
+        </div>
+    </div>
+    <div class="chat-input-area">
+        <input type="text" id="userInput" placeholder="Type your question..." onkeypress="handleEnter(event)">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatHistory = document.getElementById('chatHistory');
+    const userInput = document.getElementById('userInput');
+
+    function appendMessage(text, sender) {
+        const div = document.createElement('div');
+        div.classList.add('message', sender);
+        div.innerText = text;
+        chatHistory.appendChild(div);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        // 1. Show user message
+        appendMessage(text, 'user');
+        userInput.value = '';
+
+        // 2. Show loading state
+        const loadingDiv = document.createElement('div');
+        loadingDiv.classList.add('message', 'ai');
+        loadingDiv.innerText = 'Thinking...';
+        loadingDiv.id = 'loadingMessage';
+        chatHistory.appendChild(loadingDiv);
+
+        try {
+            // 3. Call API
+            const response = await fetch('/assistant/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+
+            // Handle non-JSON responses (e.g. 404, 500 HTML pages)
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const data = await response.json();
+                loadingDiv.remove();
+
+                if (data.error) {
+                    appendMessage("Error: " + data.error, 'ai');
+                } else {
+                    appendMessage(data.reply, 'ai');
+                }
+            } else {
+                // Read raw text if not JSON
+                const textErr = await response.text();
+                loadingDiv.remove();
+                appendMessage("Server Error (" + response.status + "): " + textErr.substring(0, 100), 'ai');
+            }
+        } catch (e) {
+            loadingDiv.remove();
+            console.error(e);
+            appendMessage("Connection Failed: " + e.message, 'ai');
+        }
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+</script>
+{% endblock %}
